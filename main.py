@@ -21,6 +21,8 @@ thread = threading.Thread()
 # Firebase API key
 fireEndPoint = 'https://smart-garden-d6653.firebaseio.com'
 firebase = firebase.FirebaseApplication(fireEndPoint, None)
+# For debugging
+firebase.delete(fireEndPoint, None)
 
 # For setting up the ADC
 adc = Adafruit_ADS1x15.ADS1115()
@@ -38,7 +40,11 @@ luxA0 = 2
 # Range 20523 -> 0%, 17366 -> 100%. Assume 18935 -> 50%
 moistureZero = 19000
 
+# Water pump
 motorPin = 7
+# Flowrate of 8ml/s
+flowRate = 14
+container = 0
 
 run = False
 # Time gap between each probe in second
@@ -67,11 +73,25 @@ def sensorServer_app():
         time.sleep(1)
         GPIO.output(pump_pin, GPIO.HIGH)
 
+    @app.route('/water')
+    def water():
+        pump_on()
+        time.sleep(1)
+        GPIO.cleanup(4)
+        return 'Watered'
+
+
     @app.route('/setMoisture/<newMoisture>')
     def setCustomMoisture(newMoisture):
         global customMoisture
         customMoisture = int(newMoisture)
         return 'Moisture set to ' + str(newMoisture) + '\n'
+
+    @app.route('/setContainerVolumn/<newVolumn>')
+    def setContainerVolumn(newVolumn):
+        global container
+        container = int(newVolumn)
+        return 'Volumn set to ' + str(container) + '\n'
 
     @app.route('/start')
     def start():
@@ -95,13 +115,15 @@ def sensorServer_app():
         return 'New probe time set to ' + str(probeTime) + '\n'
 
     def main():
-        print('| {0:>11} | {1:>11} | {2:>11} | {3:>11} | {4:>11} | {5:>11} |'
-              .format(*['Moisture', 'Temperature', 'Lux', 'Watered', 'Moisture threshold', 'Probing Time']))
+        print('| {0:>11} | {1:>11} | {2:>11} | {3:>11} | {4:>11} | {5:>11} | {6:>11}'
+            .format(
+            *['Moisture', 'Temperature', 'Lux', 'Watered', 'Moisture threshold', 'Probing Time', 'Water left']))
         global run
         global customMoisture
         global probeTime
+        global container
         while run:
-            record = [0] * 6
+            record = [0] * 7
             # Represent if water is triggered
             record[3] = False
             # Current watering moisture threshold
@@ -117,7 +139,9 @@ def sensorServer_app():
             # Check if the moisture is lower than the threshold. If yes, water
             if record[moistureAo] < customMoisture:
                 pump_on()
-                time.sleep(1)
+                waterTime = 1
+                time.sleep(waterTime)
+                container -= flowRate * waterTime
                 GPIO.cleanup(4)
                 record[3] = True
 
@@ -128,17 +152,25 @@ def sensorServer_app():
             # Record lux reading
             record[luxA0] = round(luxSensor.lux, 2)
 
+            # Record the remaining water volumn
+            record[6] = container
+
             # Print result
-            print('| {0:>11} | {1:>11} | {2:>11} | {3:>11} | {4:>18} | {5:>12} |'.format(*record))
+            print('| {0:>11} | {1:>11} | {2:>11} | {3:>11} | {4:>18} | {5:>12} | {6:>11}'.format(*record))
 
             # Upload to Firebase
             firebase.post(fireEndPoint, {
+
+                'Timestamp': {".sv": "timestamp"},
                 'Moisture': record[moistureAo],
                 'Temperature': record[temperatureAo],
                 'Lux': record[luxA0],
                 'Watered': record[3],
                 'Moisture threshold': record[4],
-                'Probing period': record[5]})
+                'Probing period': record[5],
+                'Water level': record[6]
+
+            })
 
             # Set gap between probe
             time.sleep(probeTime)
