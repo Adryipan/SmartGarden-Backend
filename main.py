@@ -13,6 +13,7 @@ import adafruit_veml7700
 from firebase import firebase
 # Flask
 from flask import Flask
+from flask import request
 from flaskthreads import AppContextThread
 import threading
 
@@ -25,6 +26,9 @@ from firebase_admin import db
 # Get machine id
 UUID = str(uuid.getnode())
 
+# Save User id
+uid = ''
+
 # Thread for sensor system
 thread = threading.Thread()
 
@@ -35,10 +39,10 @@ firebase_admin.initialize_app(cred, {
     'databaseURL': fireEndPoint,
 
 })
-firebase = db.reference('/' + UUID, None)
+# firebase = None
 
-# For debugging
-firebase.delete()
+# # For debugging
+# firebase.delete()
 
 
 # For setting up the ADC
@@ -91,9 +95,17 @@ def sensorServer_app():
         time.sleep(1)
         GPIO.output(pump_pin, GPIO.HIGH)
 
-    @app.route('/pair')
+    @app.route('/pair', methods=['POST'])
     def getUUID():
+        data = request.json
+        user = data['uid']
+        global uid
+        uid = user
+        ref = db.reference('/user/' + uid + '/devices', None)
+        ref.child(UUID).set(True)
+
         return UUID
+
 
     @app.route('/water')
     def water():
@@ -179,6 +191,7 @@ def sensorServer_app():
             # Print result
             print('| {0:>11} | {1:>11} | {2:>11} | {3:>11} | {4:>18} | {5:>12} | {6:>11}'.format(*record))
 
+            firebase = db.reference('/device/' + uid + '/' + UUID, None)
             # Upload to Firebase
             firebase.push({
 
