@@ -16,6 +16,12 @@ from flask import Flask
 from flaskthreads import AppContextThread
 import threading
 
+# Firebase admin
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
+
+
 # Get machine id
 UUID = str(uuid.getnode())
 
@@ -24,9 +30,16 @@ thread = threading.Thread()
 
 # Firebase API key
 fireEndPoint = 'https://smart-garden-d6653.firebaseio.com'
-firebase = firebase.FirebaseApplication(fireEndPoint, None)
+cred = credentials.Certificate("smart-garden-d6653-firebase-adminsdk-6p8a4-a8b5120006.json")
+firebase_admin.initialize_app(cred, {
+    'databaseURL': fireEndPoint,
+
+})
+firebase = db.reference('/' + UUID, None)
+
 # For debugging
-firebase.delete(fireEndPoint + '/' + UUID, None)
+firebase.delete()
+
 
 # For setting up the ADC
 adc = Adafruit_ADS1x15.ADS1115()
@@ -167,7 +180,7 @@ def sensorServer_app():
             print('| {0:>11} | {1:>11} | {2:>11} | {3:>11} | {4:>18} | {5:>12} | {6:>11}'.format(*record))
 
             # Upload to Firebase
-            firebase.post('/' + UUID, {
+            firebase.push({
 
                 'Timestamp': {".sv": "timestamp"},
                 'Moisture': record[moistureAo],
