@@ -1,4 +1,5 @@
 import atexit
+import uuid
 
 import RPi.GPIO as GPIO
 import time
@@ -15,6 +16,9 @@ from flask import Flask
 from flaskthreads import AppContextThread
 import threading
 
+# Get machine id
+UUID = str(uuid.getnode())
+
 # Thread for sensor system
 thread = threading.Thread()
 
@@ -22,7 +26,7 @@ thread = threading.Thread()
 fireEndPoint = 'https://smart-garden-d6653.firebaseio.com'
 firebase = firebase.FirebaseApplication(fireEndPoint, None)
 # For debugging
-firebase.delete(fireEndPoint, None)
+firebase.delete(fireEndPoint + '/' + UUID, None)
 
 # For setting up the ADC
 adc = Adafruit_ADS1x15.ADS1115()
@@ -44,7 +48,8 @@ moistureZero = 19000
 motorPin = 7
 # Flowrate of 8ml/s
 flowRate = 14
-container = 0
+total = 0
+container = total
 
 run = False
 # Time gap between each probe in second
@@ -73,13 +78,16 @@ def sensorServer_app():
         time.sleep(1)
         GPIO.output(pump_pin, GPIO.HIGH)
 
+    @app.route('/pair')
+    def getUUID():
+        return UUID
+
     @app.route('/water')
     def water():
         pump_on()
         time.sleep(1)
         GPIO.cleanup(4)
         return 'Watered'
-
 
     @app.route('/setMoisture/<newMoisture>')
     def setCustomMoisture(newMoisture):
@@ -89,9 +97,9 @@ def sensorServer_app():
 
     @app.route('/setContainerVolumn/<newVolumn>')
     def setContainerVolumn(newVolumn):
-        global container
-        container = int(newVolumn)
-        return 'Volumn set to ' + str(container) + '\n'
+        global total
+        total = int(newVolumn)
+        return 'Volumn set to ' + str(total) + '\n'
 
     @app.route('/start')
     def start():
@@ -159,7 +167,7 @@ def sensorServer_app():
             print('| {0:>11} | {1:>11} | {2:>11} | {3:>11} | {4:>18} | {5:>12} | {6:>11}'.format(*record))
 
             # Upload to Firebase
-            firebase.post(fireEndPoint, {
+            firebase.post('/' + UUID, {
 
                 'Timestamp': {".sv": "timestamp"},
                 'Moisture': record[moistureAo],
@@ -168,7 +176,8 @@ def sensorServer_app():
                 'Watered': record[3],
                 'Moisture threshold': record[4],
                 'Probing period': record[5],
-                'Water level': record[6]
+                'Water level': record[6],
+                'Container Volume': total
 
             })
 
