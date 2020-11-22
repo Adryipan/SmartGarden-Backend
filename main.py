@@ -122,6 +122,8 @@ def sensorServer_app():
     def setContainerVolumn(newVolumn):
         global total
         total = int(newVolumn)
+        global container
+        container = int(newVolumn)
         return 'Volumn set to ' + str(total) + '\n'
 
     @app.route('/start/<userid>')
@@ -162,6 +164,7 @@ def sensorServer_app():
         global customMoisture
         global probeTime
         global container
+        global total
         while run:
             record = [0] * 7
             # Represent if water is triggered
