@@ -1,3 +1,7 @@
+# Ref: https://learn.adafruit.com/adafruit-veml7700/python-circuitpython
+# Ref: https://learn.adafruit.com/circuitpython-basics-analog-inputs-and-outputs/analog-to-digital-converter-inputs
+# Ref: https://learn.adafruit.com/thermistor/circuitpython
+# Ref: https://www.hackster.io/ben-eagan/raspberry-pi-automated-plant-watering-with-website-8af2dc
 import atexit
 import uuid
 
