@@ -101,8 +101,6 @@ def sensorServer_app():
         user = data['uid']
         global uid
         uid = user
-        # ref = db.reference('/user/' + uid + '/devices', None)
-        # ref.child(UUID).set(True)
 
         return UUID
 
@@ -126,19 +124,28 @@ def sensorServer_app():
         total = int(newVolumn)
         return 'Volumn set to ' + str(total) + '\n'
 
-    @app.route('/start')
-    def start():
+    @app.route('/start/<userid>')
+    def start(userid):
+        global uid
+        uid = userid
         global run
         run = True
         global thread
         thread = threading.Thread(target=main, args=())
         thread.start()
+        # Reference it on the firebase for checking
+        ref = db.reference('/' + uid + '/' + UUID , None)
+        ref.child('auto_water').set(True)
+
         return 'Started\n'
 
     @app.route('/stop')
     def stop():
         global run
         run = False
+        # Reference it on the firebase for checking
+        ref = db.reference('/' + uid + '/' + UUID , None)
+        ref.child('auto_water').set(False)
         return 'Stopped\n'
 
     @app.route('/setProbeTime/<newProbeTime>')
