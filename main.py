@@ -203,9 +203,9 @@ def sensorServer_app():
             firebase.push({
 
                 'Timestamp': {".sv": "timestamp"},
-                'Moisture': record[moistureAo],
-                'Temperature': record[temperatureAo],
-                'Lux': record[luxA0],
+                'Moisture': round(record[moistureAo],1),
+                'Temperature': round(record[temperatureAo],1),
+                'Lux': round(record[luxA0],1),
                 'Watered': record[3],
                 'Moisture threshold': record[4],
                 'Probing period': record[5],
