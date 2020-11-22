@@ -101,8 +101,8 @@ def sensorServer_app():
         user = data['uid']
         global uid
         uid = user
-        ref = db.reference('/user/' + uid + '/devices', None)
-        ref.child(UUID).set(True)
+        # ref = db.reference('/user/' + uid + '/devices', None)
+        # ref.child(UUID).set(True)
 
         return UUID
 
@@ -191,7 +191,7 @@ def sensorServer_app():
             # Print result
             print('| {0:>11} | {1:>11} | {2:>11} | {3:>11} | {4:>18} | {5:>12} | {6:>11}'.format(*record))
 
-            firebase = db.reference('/device/' + uid + '/' + UUID, None)
+            firebase = db.reference('/' + uid + '/' + UUID + '/data', None)
             # Upload to Firebase
             firebase.push({
 
